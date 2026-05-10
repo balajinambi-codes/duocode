@@ -1,141 +1,142 @@
 import { Router } from "express";
 
-import { prisma } from "../lib/prisma";
+import prisma from "../lib/prisma";
 
 const router = Router();
+
+
 
 /*
   COMPLETE LESSON
 */
-router.post("/complete", async (req, res) => {
-  try {
-    const {
-      clerkId,
-      lessonId,
-    } = req.body;
-
-    // FIND USER
-    const user =
-      await prisma.user.findUnique({
-        where: {
-          clerkId,
-        },
-      });
-
-    if (!user) {
-      return res.status(404).json({
-        error: "User not found",
-      });
-    }
-
-    // FIND LESSON
-    const lesson =
-      await prisma.lesson.findUnique({
-        where: {
-          id: lessonId,
-        },
-      });
-
-    if (!lesson) {
-      return res.status(404).json({
-        error: "Lesson not found",
-      });
-    }
-
-    // CHECK IF ALREADY COMPLETED
-    const existing =
-      await prisma.userProgress.findUnique({
-        where: {
-          userId_lessonId: {
-            userId: user.id,
-            lessonId,
-          },
-        },
-      });
-
-    if (existing) {
-      return res.json({
-        success: true,
-        alreadyCompleted: true,
-      });
-    }
-
-    // SAVE PROGRESS
-    await prisma.userProgress.create({
-      data: {
-        userId: user.id,
+router.post(
+  "/complete",
+  async (req, res) => {
+    try {
+      const {
+        userId,
         lessonId,
-        completed: true,
-      },
-    });
+      } = req.body;
 
-    // ADD XP
-    const updatedUser =
-      await prisma.user.update({
-        where: {
-          id: user.id,
-        },
+      if (!userId || !lessonId) {
+        return res.status(400).json({
+          error:
+            "Missing required fields",
+        });
+      }
 
-        data: {
-          xp: {
-            increment: lesson.xp,
+      // FIND LESSON
+      const lesson =
+        await prisma.lesson.findUnique(
+          {
+            where: {
+              id: lessonId,
+            },
+          }
+        );
+
+      if (!lesson) {
+        return res.status(404).json({
+          error:
+            "Lesson not found",
+        });
+      }
+
+      // EXISTING PROGRESS
+      const existing =
+        await prisma.lessonProgress.findFirst(
+          {
+            where: {
+              userId,
+              lessonId,
+            },
+          }
+        );
+
+      // ALREADY COMPLETED
+      if (existing?.completed) {
+        return res.json({
+          success: true,
+          alreadyCompleted: true,
+        });
+      }
+
+      // CREATE PROGRESS
+      await prisma.lessonProgress.create(
+        {
+          data: {
+            userId,
+            lessonId,
+            completed: true,
+          },
+        }
+      );
+
+      // UPDATE XP
+      const updatedUser =
+        await prisma.user.update({
+          where: {
+            id: userId,
           },
 
-          level: Math.floor(
-            (user.xp + lesson.xp) / 100
-          ) + 1,
-        },
+          data: {
+            xp: {
+              increment: lesson.xp,
+            },
+          },
+        });
+
+      res.json({
+        success: true,
+        xpEarned: lesson.xp,
+        user: updatedUser,
       });
+    } catch (error) {
+      console.error(error);
 
-    return res.json({
-      success: true,
-      xpEarned: lesson.xp,
-      user: updatedUser,
-    });
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      error: "Failed to complete lesson",
-    });
+      res.status(500).json({
+        error:
+          "Failed to complete lesson",
+      });
+    }
   }
-});
+);
 
 /*
   GET USER PROGRESS
 */
-router.get("/:clerkId", async (req, res) => {
-  try {
-    const { clerkId } = req.params;
+router.get(
+  "/:userId",
+  async (req, res) => {
+    try {
+      const { userId } =
+        req.params;
 
-    const user =
-      await prisma.user.findUnique({
-        where: {
-          clerkId,
-        },
-      });
+      const progress =
+        await prisma.lessonProgress.findMany(
+          {
+            where: {
+              userId,
+            },
 
-    if (!user) {
-      return res.status(404).json({
-        error: "User not found",
+            include: {
+              lesson: true,
+            },
+          }
+        );
+
+      res.json(progress);
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error:
+          "Failed to fetch progress",
       });
     }
-
-    const progress =
-      await prisma.userProgress.findMany({
-        where: {
-          userId: user.id,
-        },
-      });
-
-    return res.json(progress);
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      error: "Failed to fetch progress",
-    });
   }
-});
+);
+
+
 
 export default router;

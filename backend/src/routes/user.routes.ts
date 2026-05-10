@@ -1,70 +1,89 @@
 import { Router } from "express";
 
-import { prisma } from "../lib/prisma";
+import prisma from "../lib/prisma";
 
 const router = Router();
 
 /*
   CREATE USER
 */
-router.post("/create", async (req, res) => {
-  try {
-    const {
-      clerkId,
-      email,
-      name,
-      imageUrl,
-    } = req.body;
-
-    const existingUser =
-      await prisma.user.findUnique({
-        where: {
-          clerkId,
-        },
-      });
-
-    if (existingUser) {
-      return res.json(existingUser);
-    }
-
-    const user = await prisma.user.create({
-      data: {
+router.post(
+  "/create",
+  async (req, res) => {
+    try {
+      const {
         clerkId,
         email,
         name,
         imageUrl,
-      },
-    });
+      } = req.body;
 
-    return res.json(user);
-  } catch (error) {
-    console.log(error);
+      // CHECK EXISTING
+      const existing =
+        await prisma.user.findUnique(
+          {
+            where: {
+              clerkId,
+            },
+          }
+        );
 
-    return res.status(500).json({
-      error: "Failed to create user",
-    });
+      if (existing) {
+        return res.json(existing);
+      }
+
+      // CREATE USER
+      const user =
+        await prisma.user.create({
+          data: {
+            clerkId,
+            email,
+            name,
+            imageUrl,
+          },
+        });
+
+      res.json(user);
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error:
+          "Failed to create user",
+      });
+    }
   }
-});
+);
 
 /*
-  GET USERS
+  GET USER
 */
-router.get("/", async (_req, res) => {
-  try {
-    const users = await prisma.user.findMany({
-      orderBy: {
-        xp: "desc",
-      },
-    });
+router.get(
+  "/:clerkId",
+  async (req, res) => {
+    try {
+      const { clerkId } =
+        req.params;
 
-    return res.json(users);
-  } catch (error) {
-    console.log(error);
+      const user =
+        await prisma.user.findUnique(
+          {
+            where: {
+              clerkId,
+            },
+          }
+        );
 
-    return res.status(500).json({
-      error: "Failed to fetch users",
-    });
+      res.json(user);
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        error:
+          "Failed to fetch user",
+      });
+    }
   }
-});
+);
 
 export default router;

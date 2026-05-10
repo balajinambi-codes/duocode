@@ -1,10 +1,16 @@
 import express from "express";
+
 import cors from "cors";
+
 import dotenv from "dotenv";
 
 import userRoutes from "./routes/user.routes";
+
 import pathRoutes from "./routes/path.routes";
+
 import progressRoutes from "./routes/progress.routes";
+
+import leaderboardRoutes from "./routes/leaderboard.routes";
 
 dotenv.config();
 
@@ -22,7 +28,8 @@ app.use(express.json());
 */
 app.get("/", (_req, res) => {
   res.json({
-    message: "DuoCode Backend Running 🚀",
+    message:
+      "DuoCode Backend Running 🚀",
   });
 });
 
@@ -33,12 +40,21 @@ app.use("/api/users", userRoutes);
 
 app.use("/api/paths", pathRoutes);
 
-app.use("/api/progress", progressRoutes);
+app.use(
+  "/api/progress",
+  progressRoutes
+);
+
+app.use(
+  "/api/leaderboard",
+  leaderboardRoutes
+);
 
 /*
   SERVER
 */
-const PORT = process.env.PORT || 5000;
+const PORT =
+  process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(
