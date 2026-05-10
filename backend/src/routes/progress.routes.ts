@@ -88,8 +88,13 @@ router.post(
 
       res.json({
         success: true,
+
         xpEarned: lesson.xp,
-        user: updatedUser,
+
+        totalXp: updatedUser.xp,
+
+        previousLevel:
+          updatedUser.level,
       });
     } catch (error) {
       console.error(error);
