@@ -12,6 +12,8 @@ import progressRoutes from "./routes/progress.routes";
 
 import leaderboardRoutes from "./routes/leaderboard.routes";
 
+import adminRoutes from "./routes/admin.routes";
+
 dotenv.config();
 
 const app = express();
@@ -48,6 +50,11 @@ app.use(
 app.use(
   "/api/leaderboard",
   leaderboardRoutes
+);
+
+app.use(
+  "/api/admin",
+  adminRoutes
 );
 
 /*
